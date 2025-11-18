@@ -1,0 +1,41 @@
+version: "3.9"
+
+services:
+  minio:
+    image: minio/minio:latest
+    container_name: geo-minio
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # Web UI
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - geo-net
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    container_name: geo-clickhouse
+    ports:
+      - "8123:8123"
+      - "9009:9009"
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - ../clickhouse/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ../clickhouse/config/users.xml:/etc/clickhouse-server/users.d/custom-users.xml:ro
+    networks:
+      - geo-net
+
+networks:
+  geo-net:
+
+volumes:
+  minio_data:
+  clickhouse_data:
