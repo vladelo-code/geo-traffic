@@ -69,6 +69,7 @@ services:
     environment:
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      PIP_ADDITIONAL_REQUIREMENTS: "boto3 requests"
     networks:
       - geo-net
 
@@ -83,6 +84,7 @@ services:
     environment:
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      PIP_ADDITIONAL_REQUIREMENTS: "boto3 requests"
     ports:
       - "8080:8080"
     volumes:
@@ -104,6 +106,7 @@ services:
     environment:
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      PIP_ADDITIONAL_REQUIREMENTS: "boto3 requests"
     volumes:
       - ../airflow/dags:/opt/airflow/dags
       - ../airflow/logs:/opt/airflow/logs
