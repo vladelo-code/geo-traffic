@@ -53,12 +53,15 @@ def load_clickhouse():
             row["grid_lon"],
             row["avg_speed"],
             row["cars_count"],
+            f"'{row['edge_id']}'",
+            row["lat"],
+            row["lon"],
         )
         rows.append("(" + ",".join(map(str, values)) + ")")
 
     sql = f"""
         INSERT INTO geo_traffic.traffic_grid
-        (ts, grid_lat, grid_lon, avg_speed, cars_count)
+        (ts, grid_lat, grid_lon, avg_speed, cars_count, edge_id, lat, lon)
         VALUES {",".join(rows)}
     """
 

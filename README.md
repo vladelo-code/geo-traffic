@@ -1,3 +1,12 @@
+## Запуск
+
+```
+cd docker
+docker compose up -d
+```
+
+## Структура
+
 ```
 geo-traffic/
 │
