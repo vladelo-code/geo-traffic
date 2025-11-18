@@ -1,6 +1,7 @@
-version: "3.9"
-
 services:
+  # --------------------------
+  # S3 хранилище (MinIO)
+  # --------------------------
   minio:
     image: minio/minio:latest
     container_name: geo-minio
@@ -16,6 +17,9 @@ services:
     networks:
       - geo-net
 
+  # --------------------------
+  # ClickHouse (аналитическая БД)
+  # --------------------------
   clickhouse:
     image: clickhouse/clickhouse-server:latest
     container_name: geo-clickhouse
@@ -33,9 +37,85 @@ services:
     networks:
       - geo-net
 
+  # --------------------------
+  # Postgres (метаданные Airflow)
+  # --------------------------
+  postgres:
+    image: postgres:13
+    container_name: geo-airflow-postgres
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - geo-net
+
+  # --------------------------
+  # Airflow DB migration (init)
+  # --------------------------
+  airflow-init:
+    image: apache/airflow:2.8.1
+    container_name: geo-airflow-init
+    depends_on:
+      - postgres
+    entrypoint: /bin/bash
+    command: >
+      -c "
+      airflow db migrate &&
+      airflow users create --username airflow --password airflow --firstname Admin --lastname User --role Admin --email admin@example.com
+      "
+    environment:
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    networks:
+      - geo-net
+
+  # --------------------------
+  # Airflow Webserver
+  # --------------------------
+  airflow-webserver:
+    image: apache/airflow:2.8.1
+    container_name: geo-airflow-webserver
+    depends_on:
+      - airflow-init
+    environment:
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    ports:
+      - "8080:8080"
+    volumes:
+      - ../airflow/dags:/opt/airflow/dags
+      - ../airflow/logs:/opt/airflow/logs
+      - ../airflow/plugins:/opt/airflow/plugins
+    command: webserver
+    networks:
+      - geo-net
+
+  # --------------------------
+  # Airflow Scheduler
+  # --------------------------
+  airflow-scheduler:
+    image: apache/airflow:2.8.1
+    container_name: geo-airflow-scheduler
+    depends_on:
+      - airflow-webserver
+    environment:
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    volumes:
+      - ../airflow/dags:/opt/airflow/dags
+      - ../airflow/logs:/opt/airflow/logs
+      - ../airflow/plugins:/opt/airflow/plugins
+    command: scheduler
+    networks:
+      - geo-net
+
 networks:
   geo-net:
 
 volumes:
   minio_data:
   clickhouse_data:
+  postgres_data:
