@@ -21,9 +21,8 @@ def generate_data():
 
 
 def upload_to_minio():
-    session = boto3.session.Session()
-    s3 = session.client(
-        service_name="s3",
+    s3 = boto3.client(
+        "s3",
         endpoint_url=MINIO_ENDPOINT,
         aws_access_key_id="minioadmin",
         aws_secret_access_key="minioadmin123",

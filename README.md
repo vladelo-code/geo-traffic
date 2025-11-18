@@ -5,6 +5,84 @@ cd docker
 docker compose up -d
 ```
 
+MinIO (локальный S3)
+http://localhost:9001
+minioadmin + minioadmin123
+
+Grafana
+http://localhost:3000
+admin + admin
+
+🧱 Шаг 4 — Исправляем DAG (ОЧЕНЬ ВАЖНО)
+
+Пароль должен быть minioadmin123, как в docker-compose.
+
+Исправь так:
+
+s3 = boto3.client(
+"s3",
+endpoint_url=MINIO_ENDPOINT,
+aws_access_key_id="minioadmin",
+aws_secret_access_key="minioadmin123",
+)
+
+🔄 Проверь 10 раз: пароль именно minioadmin123.
+
+⸻
+
+🚀 Шаг 5 — Поднимаем весь стек снова
+
+docker compose up -d
+
+⸻
+
+⏳ Шаг 6 — Ждём, пока сработает airflow-init
+
+Проверить:
+
+docker logs geo-airflow-init
+
+Должно быть:
+
+User created successfully
+
+⸻
+
+🏗️ Шаг 7 — Создаём bucket в Minio
+
+Открываешь:
+
+http://localhost:9001
+
+логин:
+
+minioadmin / minioadmin123
+
+→ Create Bucket
+название:
+
+geo-traffic
+
+⸻
+
+🏁 Шаг 9 — Запускаем DAG
+
+В Airflow UI → DAGs → traffic_pipeline → Trigger DAG.
+
+⸻
+
+🔍 Шаг 10 — Проверяем Minio
+
+В bucket должно появиться:
+
+raw/traffic_2025....json
+
+⸻
+
+📊 Шаг 11 — Проверяем ClickHouse
+
+curl "http://localhost:8123/?query=SELECT count(*) FROM geo_traffic.traffic_grid"
+
 ## Структура
 
 ```

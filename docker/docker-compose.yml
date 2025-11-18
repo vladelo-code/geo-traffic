@@ -115,6 +115,22 @@ services:
     networks:
       - geo-net
 
+  # --------------------------
+  # Grafana
+  # --------------------------
+  grafana:
+    image: grafana/grafana:10.4.2
+    container_name: geo-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - geo-net
+
 networks:
   geo-net:
 
@@ -122,3 +138,4 @@ volumes:
   minio_data:
   clickhouse_data:
   postgres_data:
+  grafana_data:
