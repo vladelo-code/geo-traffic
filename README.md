@@ -6,142 +6,169 @@ docker compose up -d
 ```
 
 MinIO (локальный S3)
-http://localhost:9001
+http://localhost:9001/
 minioadmin + minioadmin123
 
-Grafana
-http://localhost:3000
-admin + admin
+надо создать bucket "geo-traffic"
 
-🧱 Шаг 4 — Исправляем DAG (ОЧЕНЬ ВАЖНО)
+Запускаем DAG
 
-Пароль должен быть minioadmin123, как в docker-compose.
-
-Исправь так:
-
-s3 = boto3.client(
-"s3",
-endpoint_url=MINIO_ENDPOINT,
-aws_access_key_id="minioadmin",
-aws_secret_access_key="minioadmin123",
-)
-
-🔄 Проверь 10 раз: пароль именно minioadmin123.
-
-⸻
-
-🚀 Шаг 5 — Поднимаем весь стек снова
-
-docker compose up -d
-
-⸻
-
-⏳ Шаг 6 — Ждём, пока сработает airflow-init
-
-Проверить:
-
-docker logs geo-airflow-init
-
-Должно быть:
-
-User created successfully
-
-⸻
-
-🏗️ Шаг 7 — Создаём bucket в Minio
-
-Открываешь:
-
-http://localhost:9001
-
-логин:
-
-minioadmin / minioadmin123
-
-→ Create Bucket
-название:
-
-geo-traffic
-
-⸻
-
-🏁 Шаг 9 — Запускаем DAG
-
+http://localhost:8080/home
+airflow + airflow
 В Airflow UI → DAGs → traffic_pipeline → Trigger DAG.
 
-⸻
+Проверяем ClickHouse
+**http://localhost:8123/**
 
-🔍 Шаг 10 — Проверяем Minio
-
-В bucket должно появиться:
-
-raw/traffic_2025....json
-
-⸻
-
-📊 Шаг 11 — Проверяем ClickHouse
-
-curl "http://localhost:8123/?query=SELECT count(*) FROM geo_traffic.traffic_grid"
+Сама интерактивная карта
+http://localhost:8090/
 
 ## Структура
 
 ```
-geo-traffic/
-│
-├── docker/
-│ ├── docker-compose.yml # главный docker-compose
-│ ├── airflow/
-│ │ ├── Dockerfile
-│ │ └── requirements.txt
-│ ├── spark/
-│ │ ├── Dockerfile
-│ │ └── spark-defaults.conf
-│ ├── minio/
-│ │ ├── config.env
-│ ├── clickhouse/
-│ │ ├── Dockerfile (опционально)
-│ │ ├── init.sql
-│ └── grafana/
-│ ├── provisioning/
-│ │ └── dashboards/
-│ │ └── traffic_dashboard.json
-│ └── datasources/
-│ └── clickhouse.yml
-│
-├── airflow/
-│ ├── dags/
-│ │ ├── generate_raw_traffic.py # DAG генерации сырых данных
-│ │ ├── spark_etl.py # DAG для Spark ETL
-│ │ └── load_to_clickhouse.py # DAG загрузки в CH
-│ └── scripts/
-│ └── helpers.py
-│
-├── generator/
-│ ├── osm_graph_builder.py # скачивание/кеширование дорог Москвы
-│ ├── route_generator.py # построение маршрутов по OSM
-│ ├── simulate_cars.py # движение машин по маршрутам
-│ └── write_to_s3.py # запись JSON в MinIO (S3)
-│
-├── spark/
-│ ├── jobs/
-│ │ ├── traffic_etl.py # агрегация скорости/плотности
-│ │ └── utils.py
-│ └── submit.sh # запуск spark-submit в контейнере
-│
-├── clickhouse/
-│ ├── create_tables.sql # создаём traffic_grid
-│ ├── insert_test.sql
-│ └── queries/
-│ └── traffic_heatmap.sql
-│
-├── grafana/
-│ ├── dashboards/
-│ │ └── traffic_dashboard.json
-│ └── notes.md
-│
-├── config/
-│ ├── settings.env # переменные окружения проекта
-│ └── paths.yml # пути к S3 и т.д.
-│
-└── README.md # документация проекта
+(.venv) ~/Documents/PyCharm/geo-traffic git:[main]
+tree
+.
+├── README.md
+├── airflow
+│   ├── dags
+│   │   ├── __pycache__
+│   │   │   ├── traffic_dag.cpython-38.pyc
+│   │   │   └── traffic_generator.cpython-38.pyc
+│   │   ├── roads_moscow.json
+│   │   ├── traffic.json
+│   │   ├── traffic_dag.py
+│   │   └── traffic_generator.py
+│   ├── logs
+│   │   ├── dag_id=traffic_pipeline
+│   │   │   ├── run_id=manual__2025-11-25T11:10:59.528857+00:00
+│   │   │   │   ├── task_id=generate
+│   │   │   │   │   └── attempt=1.log
+│   │   │   │   └── task_id=upload_minio
+│   │   │   │       ├── attempt=1.log
+│   │   │   │       └── attempt=2.log
+│   │   │   ├── run_id=manual__2025-11-25T11:14:32.211044+00:00
+│   │   │   │   ├── task_id=generate
+│   │   │   │   │   └── attempt=1.log
+│   │   │   │   ├── task_id=load_clickhouse
+│   │   │   │   │   └── attempt=1.log
+│   │   │   │   └── task_id=upload_minio
+│   │   │   │       └── attempt=1.log
+│   │   │   ├── run_id=manual__2025-11-25T11:14:53.479704+00:00
+│   │   │   │   ├── task_id=generate
+│   │   │   │   │   └── attempt=1.log
+│   │   │   │   ├── task_id=load_clickhouse
+│   │   │   │   │   └── attempt=1.log
+│   │   │   │   └── task_id=upload_minio
+│   │   │   │       └── attempt=1.log
+│   │   │   ├── run_id=manual__2025-11-25T11:18:50.319924+00:00
+│   │   │   │   ├── task_id=generate
+│   │   │   │   │   └── attempt=1.log
+│   │   │   │   ├── task_id=load_clickhouse
+│   │   │   │   │   └── attempt=1.log
+│   │   │   │   └── task_id=upload_minio
+│   │   │   │       └── attempt=1.log
+│   │   │   ├── run_id=manual__2025-11-25T11:44:57.898579+00:00
+│   │   │   │   ├── task_id=generate
+│   │   │   │   │   └── attempt=1.log
+│   │   │   │   ├── task_id=load_clickhouse
+│   │   │   │   │   ├── attempt=1.log
+│   │   │   │   │   └── attempt=2.log
+│   │   │   │   └── task_id=upload_minio
+│   │   │   │       └── attempt=1.log
+│   │   │   ├── run_id=scheduled__2025-11-25T11:05:00+00:00
+│   │   │   │   ├── task_id=generate
+│   │   │   │   │   └── attempt=1.log
+│   │   │   │   └── task_id=upload_minio
+│   │   │   │       ├── attempt=1.log
+│   │   │   │       └── attempt=2.log
+│   │   │   ├── run_id=scheduled__2025-11-25T11:10:00+00:00
+│   │   │   │   ├── task_id=generate
+│   │   │   │   │   └── attempt=1.log
+│   │   │   │   ├── task_id=load_clickhouse
+│   │   │   │   │   └── attempt=1.log
+│   │   │   │   └── task_id=upload_minio
+│   │   │   │       └── attempt=1.log
+│   │   │   ├── run_id=scheduled__2025-11-25T11:15:00+00:00
+│   │   │   │   ├── task_id=generate
+│   │   │   │   │   └── attempt=1.log
+│   │   │   │   ├── task_id=load_clickhouse
+│   │   │   │   │   └── attempt=1.log
+│   │   │   │   └── task_id=upload_minio
+│   │   │   │       └── attempt=1.log
+│   │   │   ├── run_id=scheduled__2025-11-25T11:20:00+00:00
+│   │   │   │   ├── task_id=generate
+│   │   │   │   │   └── attempt=1.log
+│   │   │   │   ├── task_id=load_clickhouse
+│   │   │   │   │   └── attempt=1.log
+│   │   │   │   └── task_id=upload_minio
+│   │   │   │       └── attempt=1.log
+│   │   │   ├── run_id=scheduled__2025-11-25T11:25:00+00:00
+│   │   │   │   ├── task_id=generate
+│   │   │   │   │   └── attempt=1.log
+│   │   │   │   ├── task_id=load_clickhouse
+│   │   │   │   │   └── attempt=1.log
+│   │   │   │   └── task_id=upload_minio
+│   │   │   │       └── attempt=1.log
+│   │   │   ├── run_id=scheduled__2025-11-25T11:30:00+00:00
+│   │   │   │   ├── task_id=generate
+│   │   │   │   │   └── attempt=1.log
+│   │   │   │   ├── task_id=load_clickhouse
+│   │   │   │   │   └── attempt=1.log
+│   │   │   │   └── task_id=upload_minio
+│   │   │   │       └── attempt=1.log
+│   │   │   ├── run_id=scheduled__2025-11-25T11:35:00+00:00
+│   │   │   │   ├── task_id=generate
+│   │   │   │   │   └── attempt=1.log
+│   │   │   │   ├── task_id=load_clickhouse
+│   │   │   │   │   ├── attempt=1.log
+│   │   │   │   │   └── attempt=2.log
+│   │   │   │   └── task_id=upload_minio
+│   │   │   │       └── attempt=1.log
+│   │   │   ├── run_id=scheduled__2025-11-25T11:40:00+00:00
+│   │   │   │   ├── task_id=generate
+│   │   │   │   │   └── attempt=1.log
+│   │   │   │   ├── task_id=load_clickhouse
+│   │   │   │   │   └── attempt=1.log
+│   │   │   │   └── task_id=upload_minio
+│   │   │   │       └── attempt=1.log
+│   │   │   └── run_id=scheduled__2025-11-25T11:45:00+00:00
+│   │   │       ├── task_id=generate
+│   │   │       │   └── attempt=1.log
+│   │   │       ├── task_id=load_clickhouse
+│   │   │       │   └── attempt=1.log
+│   │   │       └── task_id=upload_minio
+│   │   │           └── attempt=1.log
+│   │   ├── dag_processor_manager
+│   │   │   └── dag_processor_manager.log
+│   │   └── scheduler
+│   │       ├── 2025-11-25
+│   │       │   └── traffic_dag.py.log
+│   │       ├── 2025-11-25 2
+│   │       └── latest -> 2025-11-25
+│   └── plugins
+├── api
+│   ├── __pycache__
+│   │   └── main.cpython-310.pyc
+│   └── main.py
+├── clickhouse
+│   ├── config
+│   │   └── users.xml
+│   └── init.sql
+├── docker
+│   └── docker-compose.yml
+├── frontend-map
+│   └── index.html
+├── generator
+│   ├── build_geojson.py
+│   ├── build_moscow_roads.py
+│   ├── build_moscow_roads_geometry.py
+│   ├── load_road_geometry_to_clickhouse.py
+│   └── roads_moscow_geometry.json
+└── tileserver
+    ├── config.json
+    └── styles
+        └── roads_style.json
+
+76 directories, 65 files
 ```
