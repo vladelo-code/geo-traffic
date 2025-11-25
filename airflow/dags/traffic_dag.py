@@ -12,6 +12,31 @@ BUCKET_NAME = "geo-traffic"
 CLICKHOUSE_URL = "http://geo-clickhouse:8123"
 
 
+# -----------------------
+# 1. Создание bucket при необходимости
+# -----------------------
+def ensure_bucket():
+    s3 = boto3.client(
+        "s3",
+        endpoint_url=MINIO_ENDPOINT,
+        aws_access_key_id="minioadmin",
+        aws_secret_access_key="minioadmin123",
+    )
+
+    # Проверяем наличие бакета
+    buckets = s3.list_buckets().get("Buckets", [])
+    exists = any(b["Name"] == BUCKET_NAME for b in buckets)
+
+    if not exists:
+        print(f"Bucket '{BUCKET_NAME}' not found. Creating...")
+        s3.create_bucket(Bucket=BUCKET_NAME)
+    else:
+        print(f"Bucket '{BUCKET_NAME}' already exists.")
+
+
+# -----------------------
+# 2. Генерация трафика
+# -----------------------
 def generate_data():
     """
     Генерируем traffic.json в папке DAG'ов.
@@ -20,7 +45,12 @@ def generate_data():
     generate_traffic_file(output_path)
 
 
+# -----------------------
+# 3. Загрузка в MinIO
+# -----------------------
 def upload_to_minio():
+    ensure_bucket()
+
     s3 = boto3.client(
         "s3",
         endpoint_url=MINIO_ENDPOINT,
@@ -38,7 +68,12 @@ def upload_to_minio():
             Body=f.read(),
         )
 
+    print(f"Uploaded to MinIO: {object_key}")
 
+
+# -----------------------
+# 4. Загрузка в ClickHouse
+# -----------------------
 def load_clickhouse():
     """
     Загружаем traffic.json в ClickHouse.
@@ -78,6 +113,9 @@ def load_clickhouse():
         raise Exception(f"ClickHouse insert error:\n{resp.text}")
 
 
+# -----------------------
+# 5. DAG
+# -----------------------
 default_args = {
     "owner": "airflow",
     "retries": 1,
@@ -91,6 +129,7 @@ with DAG(
         start_date=datetime(2024, 1, 1),
         catchup=False,
         tags=["geo", "traffic"],
+        is_paused_upon_creation=False,
 ) as dag:
     t1 = PythonOperator(
         task_id="generate",
