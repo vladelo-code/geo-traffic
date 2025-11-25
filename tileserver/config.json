@@ -1,0 +1,18 @@
+{
+  "options": {
+    "paths": {
+      "root": "/data"
+    }
+  },
+  "data": {
+    "roads_traffic": {
+      "mbtiles": "roads_traffic.mbtiles"
+    }
+  },
+  "styles": {
+    "roads_style": {
+      "style": "styles/roads_style.json",
+      "serve_data": true
+    }
+  }
+}

@@ -1,108 +1,77 @@
-# -----------------------------
-# Python
-# -----------------------------
+# --- Python ---
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-*.pdb
 *.pkl
-*.log
-*.sqlite
-*.db
 
 # Virtual environments
-.env
-.venv
+.venv/
 venv/
-ENV/
 env/
-*.egg-info/
-.eggs/
+.idea
 
-# Jupyter and dev tooling
+# Jupyter
 .ipynb_checkpoints/
-.history
-.pytest_cache/
-.mypy_cache/
-.dmypy.json
-.pyre/
 
-# -----------------------------
-# OS & IDE
-# -----------------------------
-.DS_Store
-Thumbs.db
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# -----------------------------
-# Docker / Compose
-# -----------------------------
-docker/*logs*
-docker-compose.override.yml
-# Do not ignore main compose file
-
-# Docker volumes (local bind mounts)
-postgres_data/
-minio_data/
-clickhouse_data/
-
-# -----------------------------
-# Airflow
-# -----------------------------
+# --- Airflow ---
 airflow/logs/
 airflow/dags/__pycache__/
-airflow/plugins/__pycache__/
+airflow/dags/*.tmp
+airflow/dags/*.log
 
-# Airflow generated files
+# Airflow local db
 airflow/airflow.db
-airflow/airflow.cfg
-airflow/webserver_config.py
+airflow/airflow.sqlite
 
-# -----------------------------
-# Data files
-# -----------------------------
-# Raw & processed generated data
-*.json
-*.parquet
-*.csv
+# Scheduler/process logs
+airflow/dag_processor_manager/
+airflow/scheduler/
 
-# Keep these EXCEPTIONS:
-!airflow/dags/roads_moscow.json
-!airflow/dags/traffic_generator.py
-!airflow/dags/traffic_dag.py
-
-# Do not commit large OSM cache
-generator/cache/
-
-# -----------------------------
-# Spark
-# -----------------------------
+# --- Spark ---
 spark/logs/
+spark/tmp/
 spark/work/
-spark/checkpoint/
 
-# -----------------------------
-# Secrets (in future)
-# -----------------------------
-*.key
-*.pem
-*.env.local
-secrets.yaml
-.env.prod
-.env.dev
+# --- API cache ---
+api/__pycache__/
 
-# -----------------------------
-# MinIO artifacts
-# -----------------------------
-**/minio_data/
-**/.minio.sys/
+# --- Geometry / Generator cache ---
+generator/cache/
+generator/__pycache__/
 
-# -----------------------------
-# ClickHouse
-# -----------------------------
-clickhouse_data/
-clickhouse/backup/
+# Intermediate geojson/JSON files generated automatically
+generator/*.geojson
+generator/*.json
+
+# But EXCEPT source files — keep these:
+!generator/build_geojson.py
+!generator/build_moscow_roads.py
+!generator/build_moscow_roads_geometry.py
+!generator/load_road_geometry_to_clickhouse.py
+
+# --- MBTiles and heavy vector files ---
+*.mbtiles
+*.pbf
+*.osm
+
+# Keep only final production mbtiles (if you want)
+# !tileserver/roads_traffic.mbtiles
+
+# --- Frontend build cache ---
+frontend-map/node_modules/
+frontend-map/dist/
+frontend-map/.cache/
+
+# --- Clickhouse ---
+clickhouse/data/
+clickhouse/logs/
+clickhouse/*.log
+
+# --- Docker ---
+docker/*.log
+*.pid
+
+# --- OS Files ---
+.DS_Store
+Thumbs.db

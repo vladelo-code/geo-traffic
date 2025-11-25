@@ -15,6 +15,7 @@
             margin: 0;
             padding: 0;
             height: 100%;
+            overflow: hidden;
         }
 
         #map {
@@ -33,30 +34,33 @@
 <script>
     const apiUrl = "http://localhost:8000/traffic";
 
+    // Берём стиль из tileserver'а
     let map = new maplibregl.Map({
         container: 'map',
-        style: 'http://localhost:8081/styles/roads_style/style.json',
+        style: "http://localhost:8081/styles/roads_style/style.json",
         center: [37.62, 55.75],
         zoom: 12
     });
 
     map.on('load', () => {
-        // Создаём пустой источник под трафик
+        // Источник трафика
         map.addSource('traffic', {
             type: 'geojson',
-            data: {
-                type: 'FeatureCollection',
-                features: []
-            }
+            data: {type: 'FeatureCollection', features: []}
         });
 
-        // Линии трафика
+        // Слой с трафиком (поверх зелёных дорог)
         map.addLayer({
             id: 'traffic-lines',
             type: 'line',
             source: 'traffic',
             paint: {
-                'line-width': 4,
+                'line-width': [
+                    'interpolate', ['linear'], ['zoom'],
+                    8, 0.8,
+                    12, 2,
+                    15, 4
+                ],
                 'line-color': [
                     'interpolate',
                     ['linear'],
@@ -67,20 +71,20 @@
                     40, '#ffff00',
                     70, '#00ff00'
                 ],
-                'line-opacity': 0.8
+                'line-opacity': 0.9
             }
         });
 
-        // Загружаем трафик
+        // Загрузка трафика
         async function loadTraffic() {
             try {
                 const resp = await fetch(apiUrl);
                 const data = await resp.json();
 
                 const features = data.map(item => ({
-                    type: 'Feature',
+                    type: "Feature",
                     geometry: {
-                        type: 'LineString',
+                        type: "LineString",
                         coordinates: item.polyline.map(p => [p[1], p[0]]) // lon, lat
                     },
                     properties: {
@@ -91,16 +95,17 @@
                 }));
 
                 map.getSource('traffic').setData({
-                    type: 'FeatureCollection',
+                    type: "FeatureCollection",
                     features
                 });
-            } catch (err) {
-                console.error("Ошибка загрузки трафика:", err);
+
+            } catch (e) {
+                console.error("Traffic load error:", e);
             }
         }
 
-        loadTraffic();               // первая загрузка
-        setInterval(loadTraffic, 10000); // далее каждые 10 секунд
+        loadTraffic();
+        setInterval(loadTraffic, 10000);
     });
 </script>
 
