@@ -11,14 +11,13 @@ venv/
 env/
 .idea
 
-# Jupyter
-.ipynb_checkpoints/
 
 # --- Airflow ---
 airflow/logs/
 airflow/dags/__pycache__/
 airflow/dags/*.tmp
 airflow/dags/*.log
+/airflow/dags/traffic.json
 
 # Airflow local db
 airflow/airflow.db
@@ -28,11 +27,6 @@ airflow/airflow.sqlite
 airflow/dag_processor_manager/
 airflow/scheduler/
 
-# --- Spark ---
-spark/logs/
-spark/tmp/
-spark/work/
-
 # --- API cache ---
 api/__pycache__/
 
@@ -40,18 +34,8 @@ api/__pycache__/
 generator/cache/
 generator/__pycache__/
 
-# Intermediate geojson/JSON files generated automatically
-generator/*.geojson
-generator/*.json
-
-# But EXCEPT source files — keep these:
-!generator/build_geojson.py
-!generator/build_moscow_roads.py
-!generator/build_moscow_roads_geometry.py
-!generator/load_road_geometry_to_clickhouse.py
-
 # --- MBTiles and heavy vector files ---
-*.mbtiles
+#*.mbtiles
 *.pbf
 *.osm
 
