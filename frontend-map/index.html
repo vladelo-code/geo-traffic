@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>Moscow Traffic Map</title>
+
+    <!-- MapLibre CSS -->
+    <link
+            href="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.css"
+            rel="stylesheet"
+    />
+
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+
+<body>
+<div id="map"></div>
+
+<!-- MapLibre JS -->
+<script src="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.js"></script>
+
+<script>
+    const apiUrl = "http://localhost:8000/traffic";
+
+    let map = new maplibregl.Map({
+        container: 'map',
+        style: 'http://localhost:8081/styles/roads_style/style.json',
+        center: [37.62, 55.75],
+        zoom: 12
+    });
+
+    map.on('load', () => {
+        // Создаём пустой источник под трафик
+        map.addSource('traffic', {
+            type: 'geojson',
+            data: {
+                type: 'FeatureCollection',
+                features: []
+            }
+        });
+
+        // Линии трафика
+        map.addLayer({
+            id: 'traffic-lines',
+            type: 'line',
+            source: 'traffic',
+            paint: {
+                'line-width': 4,
+                'line-color': [
+                    'interpolate',
+                    ['linear'],
+                    ['get', 'avg_speed'],
+                    0, '#6d0606',
+                    10, '#ff0000',
+                    20, '#ff6600',
+                    40, '#ffff00',
+                    70, '#00ff00'
+                ],
+                'line-opacity': 0.8
+            }
+        });
+
+        // Загружаем трафик
+        async function loadTraffic() {
+            try {
+                const resp = await fetch(apiUrl);
+                const data = await resp.json();
+
+                const features = data.map(item => ({
+                    type: 'Feature',
+                    geometry: {
+                        type: 'LineString',
+                        coordinates: item.polyline.map(p => [p[1], p[0]]) // lon, lat
+                    },
+                    properties: {
+                        edge_id: item.edge_id,
+                        avg_speed: item.avg_speed,
+                        cars_count: item.cars_count
+                    }
+                }));
+
+                map.getSource('traffic').setData({
+                    type: 'FeatureCollection',
+                    features
+                });
+            } catch (err) {
+                console.error("Ошибка загрузки трафика:", err);
+            }
+        }
+
+        loadTraffic();               // первая загрузка
+        setInterval(loadTraffic, 10000); // далее каждые 10 секунд
+    });
+</script>
+
+</body>
+</html>

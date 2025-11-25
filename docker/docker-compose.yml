@@ -116,18 +116,53 @@ services:
       - geo-net
 
   # --------------------------
-  # Grafana
+  # FastAPI
   # --------------------------
-  grafana:
-    image: grafana/grafana:10.4.2
-    container_name: geo-grafana
-    ports:
-      - "3000:3000"
-    environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+  traffic_api:
+    image: python:3.10-slim
+    container_name: traffic_api
+    working_dir: /app
+    command: >
+      bash -c "
+      apt-get update &&
+      apt-get install -y g++ &&
+      pip install fastapi uvicorn clickhouse-driver &&
+      uvicorn main:app --host 0.0.0.0 --port 8000
+      "
     volumes:
-      - grafana_data:/var/lib/grafana
+      - ../api:/app
+      - ../generator/roads_moscow_geometry.json:/data/roads.json:ro
+    ports:
+      - "8000:8000"
+    depends_on:
+      - clickhouse
+    networks:
+      - geo-net
+
+  # --------------------------
+  # Frontend
+  # --------------------------
+  frontend:
+    image: nginx:latest
+    container_name: geo-frontend
+    ports:
+      - "8090:80"
+    volumes:
+      - ../frontend-map:/usr/share/nginx/html:ro
+    networks:
+      - geo-net
+
+  # --------------------------
+  # TileServer
+  # --------------------------
+  tileserver:
+    image: maptiler/tileserver-gl
+    container_name: geo-tileserver
+    restart: unless-stopped
+    volumes:
+      - ../tileserver:/data
+    ports:
+      - "8081:8080"
     networks:
       - geo-net
 
@@ -138,4 +173,3 @@ volumes:
   minio_data:
   clickhouse_data:
   postgres_data:
-  grafana_data:

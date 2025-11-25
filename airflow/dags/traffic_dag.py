@@ -40,32 +40,42 @@ def upload_to_minio():
 
 
 def load_clickhouse():
+    """
+    Загружаем traffic.json в ClickHouse.
+    Исправлено на ПОСТРОЧНУЮ отправку (стриминг),
+    чтобы ClickHouse не разрывал соединение при больших объёмах данных.
+    """
     file_path = "/opt/airflow/dags/traffic.json"
+
+    # Читаем JSON
     with open(file_path) as f:
         data = json.load(f)
 
-    rows = []
-    for row in data:
-        values = (
-            f"'{row['ts']}'",
-            row["grid_lat"],
-            row["grid_lon"],
-            row["avg_speed"],
-            row["cars_count"],
-            f"'{row['edge_id']}'",
-            row["lat"],
-            row["lon"],
-        )
-        rows.append("(" + ",".join(map(str, values)) + ")")
+    # Генератор строк JSONEachRow (не держим огромный SQL в памяти)
+    def row_generator():
+        for row in data:
+            yield json.dumps({
+                "ts": row["ts"],
+                "grid_lat": row["grid_lat"],
+                "grid_lon": row["grid_lon"],
+                "avg_speed": row["avg_speed"],
+                "cars_count": row["cars_count"],
+                "edge_id": row["edge_id"],
+                "lat": row["lat"],
+                "lon": row["lon"],
+            }) + "\n"
 
-    sql = f"""
-        INSERT INTO geo_traffic.traffic_grid
-        (ts, grid_lat, grid_lon, avg_speed, cars_count, edge_id, lat, lon)
-        VALUES {",".join(rows)}
-    """
+    # Отправляем ПОСТРОЧНО — ClickHouse не падает
+    resp = requests.post(
+        CLICKHOUSE_URL,
+        params={"query": "INSERT INTO geo_traffic.traffic_grid FORMAT JSONEachRow"},
+        data=row_generator(),
+        timeout=120,
+    )
 
-    resp = requests.post(CLICKHOUSE_URL, params={"query": sql})
-    resp.raise_for_status()
+    # Проверяем статус
+    if resp.status_code != 200:
+        raise Exception(f"ClickHouse insert error:\n{resp.text}")
 
 
 default_args = {

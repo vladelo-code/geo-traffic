@@ -70,22 +70,24 @@ def latlon_to_grid(lat: float, lon: float) -> Tuple[int, int]:
     grid_lat = int(lat_norm * (GRID_LAT_CELLS - 1))
     grid_lon = int(lon_norm * (GRID_LON_CELLS - 1))
 
-    # На всякий случай ограничим границы
+    # Ограничение границ
     grid_lat = max(0, min(GRID_LAT_CELLS - 1, grid_lat))
     grid_lon = max(0, min(GRID_LON_CELLS - 1, grid_lon))
 
     return grid_lat, grid_lon
 
 
-def generate_traffic_grid(sample_size: int = 500):
+def generate_traffic_grid(sample_size: int = None):
     """
     Генерируем "пробки" на реальных дорожных сегментах Москвы.
     Каждый сегмент берём из roads_moscow.json.
     """
+
     roads = _load_roads()
     now = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
 
-    if sample_size > len(roads):
+    # Генерируем данные для всех дорог, если явно не указано иное
+    if sample_size is None or sample_size > len(roads):
         sample_size = len(roads)
 
     sampled_roads = random.sample(roads, sample_size)
@@ -97,8 +99,17 @@ def generate_traffic_grid(sample_size: int = 500):
 
         grid_lat, grid_lon = latlon_to_grid(lat, lon)
 
-        avg_speed = random.uniform(5, 80)  # км/ч
-        cars_count = random.randint(0, 50)  # машин на сегменте
+        # Реалистичное моделирование трафика
+        cars_count = random.randint(0, 200)
+
+        if cars_count > 150:
+            avg_speed = random.uniform(5, 15)  # жесткая пробка
+        elif cars_count > 100:
+            avg_speed = random.uniform(10, 25)  # плотный поток
+        elif cars_count > 50:
+            avg_speed = random.uniform(20, 45)  # обычный трафик
+        else:
+            avg_speed = random.uniform(40, 80)  # свободно
 
         rows.append(
             {
